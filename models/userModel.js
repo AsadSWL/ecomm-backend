@@ -1,8 +1,15 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const { resetPassword } = require('../controllers/authController');
 
 const userSchema = new mongoose.Schema({
+  firstname: {
+    type: String,
+    required: true,
+  },
+  lastname: {
+    type: String,
+    required: true,
+  },
   username: {
     type: String,
     required: true,
