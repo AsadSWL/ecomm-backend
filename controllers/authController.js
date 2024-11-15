@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 
 
 exports.register = async (req, res) => {
-  const { firstname, lastname, username, email, password, role } = req.body;
+  const { firstname, lastname, email, password, role } = req.body;
 
   try {
     const userExists = await User.findOne({ email });
@@ -24,7 +24,6 @@ exports.register = async (req, res) => {
     const user = new User({
       firstname: firstname,
       lastname: lastname,
-      username: username,
       email: email,
       password: password,
       role: role,
@@ -36,13 +35,12 @@ exports.register = async (req, res) => {
       _id: user._id,
       firstname: user.firstname,
       lastname: user.lastname,
-      username: user.username,
       email: user.email,
       role: user.role,
     };
 
     const token = jwt.sign(authPayload, process.env.JWT_SECRET, { expiresIn: '24h' });
-    res.status(201).json({ status: true, token, user: { username: user.username, email: user.email, role: user.role } });
+    res.status(201).json({ status: true, token, user: { firstname: user.firstname, lastname: user.lastname, email: user.email, role: user.role } });
   } catch (err) {
     res.status(500).json({ status: false, message: 'Server error' });
   }
@@ -67,18 +65,35 @@ exports.login = async (req, res) => {
       _id: user._id,
       firstname: user.firstname,
       lastname: user.lastname,
-      username: user.username,
       email: user.email,
       role: user.role,
     };
 
     const token = jwt.sign(authPayload, process.env.JWT_SECRET, { expiresIn: '24h' });
-    res.status(200).json({ status: true, token, user: { username: user.username, email: user.email, role: user.role } });
+    res.status(200).json({ status: true, token, user: { email: user.email, role: user.role } });
   } catch (err) {
     res.status(500).json({ status: false, message: 'Server error' });
   }
 };
 
+exports.varify = async (req, res) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Authorization token missing or invalid" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    res.status(200).json({ message: "Token is valid", user: decoded });
+  } catch (error) {
+    console.error("Token verification error:", error.message);
+    res.status(401).json({ message: "Invalid or expired token" });
+  }
+};
 
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;

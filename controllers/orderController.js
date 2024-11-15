@@ -34,7 +34,7 @@ exports.placeOrder = async (req, res) => {
 exports.getAllOrders = async (req, res) => {
     try {
         const orders = await Order.find()
-          .populate('branch', 'name email address')
+          .populate('branch', 'firstname lastname email address')
           .populate('supplier', 'name email address')
           .populate('products.product', 'name price');
     
@@ -42,6 +42,19 @@ exports.getAllOrders = async (req, res) => {
       } catch (error) {
         res.status(500).json({ status: false, error: 'Failed to get orders' });
       }
+};
+
+exports.getOrder = async (req, res) => {
+    try {
+        const order = await Order.find({ _id: req.params.id })
+            .populate('branch', 'firstname lastname email address')
+            .populate('supplier', 'name email address')
+            .populate('products.product', 'name price category');
+            
+        res.json({ status: true, order: order});
+    } catch (error) {
+        res.status(500).json({ status: false, error: 'Failed to get orders' });
+    }
 };
 
 exports.getOrdersForSupplier = async (req, res) => {

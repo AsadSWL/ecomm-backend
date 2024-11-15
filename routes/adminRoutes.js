@@ -13,6 +13,8 @@ const router = express.Router();
 
 // router.get('/branch', authMiddleware, roleMiddleware(['branch', 'admin']), adminController.branchAccess);
 
+router.get('/dashboard-stats', authMiddleware, roleMiddleware(['admin']), adminController.getDashboardStats);
+
 router.post('/create-branch', authMiddleware, roleMiddleware(['admin']), branchController.createBranch);
 router.get('/get-branches', authMiddleware, roleMiddleware(['admin']), branchController.getBranches);
 
@@ -28,6 +30,7 @@ router.get('/get-products-by-suppliers/:supplierId', authMiddleware, roleMiddlew
 
 router.post('/place-order', authMiddleware, roleMiddleware(['branch', 'admin']), orderController.placeOrder);
 router.get('/get-all-orders', authMiddleware, roleMiddleware(['admin']), orderController.getAllOrders);
+router.get('/get-order/:id', authMiddleware, roleMiddleware(['admin']), orderController.getOrder);
 router.get('/get-orders-for-suppliers/:supplierId', authMiddleware, roleMiddleware(['admin']), orderController.getOrdersForSupplier);
 router.get('/get-orders-for-branch/:branchId', authMiddleware, roleMiddleware(['admin']), orderController.getOrdersForBranch);
 
