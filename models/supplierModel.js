@@ -1,17 +1,17 @@
 const mongoose = require('mongoose');
 
 const supplierSchema = new mongoose.Schema({
+  icon: { type: String   },
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   address: {
     street: { type: String },
     city: { type: String },
-    postalCode: { type: String },
-    country: { type: String }
+    postcode: { type: String },
   },
-  paymentIntegration: { type: mongoose.Schema.Types.ObjectId, ref: 'Integration' },
-  deliveryAreas: [String],
+  deliveryDays: [String],
   holidays: { type: mongoose.Schema.Types.ObjectId, ref: 'Holiday' },
+  status: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
 

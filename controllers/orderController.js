@@ -3,14 +3,9 @@ const Supplier = require('../models/supplierModel');
 const Product = require('../models/productModel');
 
 exports.placeOrder = async (req, res) => {
-    const { branchId, supplierId, products, deliveryAddress } = req.body;
+    const { branchId, products, deliveryDate } = req.body;
 
     try {
-        const supplier = await Supplier.findById(supplierId);
-
-        if (!supplier.deliveryAreas.includes(deliveryAddress)) {
-            return res.status(400).json({ error: 'Supplier does not deliver to this area' });
-        }
 
         let totalPrice = 0;
         for (const item of products) {
@@ -22,10 +17,10 @@ exports.placeOrder = async (req, res) => {
             }
         }
 
-        const order = new Order({ branch: branchId, supplier: supplierId, products, totalPrice, deliveryAddress });
+        const order = new Order({ branch: branchId, products, totalPrice, deliveryDate });
         await order.save();
 
-        res.status(201).json({ status: true, order: order});
+        res.status(201).json({ status: true, order: order });
     } catch (error) {
         res.status(500).json({ status: false, error: 'Failed to create order' });
     }
@@ -34,42 +29,119 @@ exports.placeOrder = async (req, res) => {
 exports.getAllOrders = async (req, res) => {
     try {
         const orders = await Order.find()
-          .populate('branch', 'firstname lastname email address')
-          .populate('supplier', 'name email address')
-          .populate('products.product', 'name price');
-    
-        res.json({ status: true, orders: orders});
-      } catch (error) {
+            .populate('branch', 'firstname lastname email address paymentMethod')
+            .populate('products.product', 'supplier category image name sku price vat');
+
+        res.json({ status: true, orders: orders });
+    } catch (error) {
         res.status(500).json({ status: false, error: 'Failed to get orders' });
-      }
+    }
 };
 
 exports.getOrder = async (req, res) => {
     try {
         const order = await Order.find({ _id: req.params.id })
-            .populate('branch', 'firstname lastname email address')
-            .populate('supplier', 'name email address')
-            .populate('products.product', 'name price category');
-            
-        res.json({ status: true, order: order});
+            .populate('branch', 'firstname lastname email address paymentMethod')
+            .populate('products.product', 'supplier category image name sku price vat');
+
+        res.json({ status: true, order: order });
     } catch (error) {
         res.status(500).json({ status: false, error: 'Failed to get orders' });
     }
 };
 
-exports.getOrdersForSupplier = async (req, res) => {
+exports.getOrdersForSuppliers = async (req, res) => {
     try {
-        const orders = await Order.find({ supplier: req.params.supplierId }).populate('branch products.product');
-        res.json({ status: true, orders: orders});
+        const groupedOrders = await Order.aggregate([
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: 'products.product',
+                    foreignField: '_id',
+                    as: 'productDetails',
+                },
+            },
+            {
+                $unwind: '$productDetails',
+            },
+            {
+                $group: {
+                    _id: '$productDetails.supplier',
+                    orders: {
+                        $push: {
+                            _id: '$_id',
+                            branch: '$branch',
+                            totalPrice: '$totalPrice',
+                            deliveryDate: '$deliveryDate',
+                            status: '$status',
+                            createdAt: '$createdAt',
+                        },
+                    },
+                    totalOrderValue: { $sum: '$totalPrice' },
+                },
+            },
+            {
+                $lookup: {
+                    from: 'suppliers',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'supplierDetails',
+                },
+            },
+        ]);
+
+        res.json({ status: true, orders: groupedOrders });
     } catch (error) {
+        console.error('Error grouping orders by supplier:', error);
         res.status(500).json({ status: false, error: 'Failed to get orders' });
     }
+};
+
+exports.getOrdersBySupplier = async (req, res) => {
+    try {
+        const orders = await Order.aggregate([
+          {
+            $lookup: {
+              from: 'products',
+              localField: 'products.product',
+              foreignField: '_id',
+              as: 'productDetails',
+            },
+          },
+          {
+            $match: {
+              'productDetails.supplier': mongoose.Types.ObjectId(req.params.supplierId),
+            },
+          },
+          {
+            $project: {
+              branch: 1,
+              totalPrice: 1,
+              deliveryDate: 1,
+              status: 1,
+              createdAt: 1,
+              products: {
+                $filter: {
+                  input: '$productDetails',
+                  as: 'product',
+                  cond: { $eq: ['$$product.supplier', mongoose.Types.ObjectId(req.params.supplierId)] },
+                },
+              },
+            },
+          },
+        ]);
+    
+        res.json({ status: true, order: orders });
+      } catch (error) {
+        console.error('Error fetching orders by supplier:', error);
+        res.status(500).json({ status: false, error: 'Failed to get orders' });
+      }
 };
 
 exports.getOrdersForBranch = async (req, res) => {
     try {
         const orders = await Order.find({ branch: req.params.branchId }).populate('supplier products.product');
-        res.json({ status: true, orders: orders});
+        res.json({ status: true, orders: orders });
     } catch (error) {
         res.status(500).json({ status: false, error: 'Failed to get orders' });
     }

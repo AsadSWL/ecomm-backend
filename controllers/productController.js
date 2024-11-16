@@ -23,10 +23,10 @@ exports.getCategories = async (req, res) => {
 };
 
 exports.addProduct = async (req, res) => {
-    const { supplierId, categoryId, name, description, price, stock } = req.body;
+    const { supplierId, categoryId, image, name, sku, price, vat, status, description } = req.body;
 
     try {
-        const product = new Product({ supplier: supplierId, category: categoryId, name, description, price, stock });
+        const product = new Product({ supplier: supplierId, category: categoryId, image, name, sku, price, vat, status, description });
         await product.save();
         res.status(201).json({ status: true, product: product});
     } catch (error) {

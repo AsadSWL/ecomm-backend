@@ -24,6 +24,12 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'branch'],
     default: 'branch',
   },
+  paymentMethod: {
+    type: String,
+  },
+  status: {
+    type: String,
+  },
   resetPasswordToken: String,
   resetPasswordExpires: Date
 });

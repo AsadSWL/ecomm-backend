@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
   branch: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  supplier: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier', required: true },
   products: [
     {
       product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
@@ -10,7 +9,7 @@ const orderSchema = new mongoose.Schema({
     }
   ],
   totalPrice: { type: Number},
-  deliveryAddress: { type: String },
+  deliveryDate: { type: Date },
   status: { type: String, default: 'pending' },
   createdAt: { type: Date, default: Date.now }
 });

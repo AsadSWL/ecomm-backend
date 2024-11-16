@@ -21,7 +21,6 @@ router.get('/get-branches', authMiddleware, roleMiddleware(['admin']), branchCon
 router.post('/create-supplier', authMiddleware, roleMiddleware(['admin']), supplierController.createSupplier);
 router.get('/get-suppliers', authMiddleware, roleMiddleware(['branch', 'admin']), supplierController.getSupplier);
 router.post('/set-holiday', authMiddleware, roleMiddleware(['admin']), supplierController.setHoliday);
-router.post('/payment-integration', authMiddleware, roleMiddleware(['admin']), supplierController.paymentIntegration);
 
 router.post('/add-category', authMiddleware, roleMiddleware(['admin']), productController.addCategory);
 router.get('/get-categories', authMiddleware, roleMiddleware(['branch', 'admin']), productController.getCategories);
@@ -31,7 +30,8 @@ router.get('/get-products-by-suppliers/:supplierId', authMiddleware, roleMiddlew
 router.post('/place-order', authMiddleware, roleMiddleware(['branch', 'admin']), orderController.placeOrder);
 router.get('/get-all-orders', authMiddleware, roleMiddleware(['admin']), orderController.getAllOrders);
 router.get('/get-order/:id', authMiddleware, roleMiddleware(['admin']), orderController.getOrder);
-router.get('/get-orders-for-suppliers/:supplierId', authMiddleware, roleMiddleware(['admin']), orderController.getOrdersForSupplier);
+router.get('/get-orders-for-supplier/:supplierId', authMiddleware, roleMiddleware(['admin']), orderController.getOrdersBySupplier);
+router.get('/get-orders-for-suppliers', authMiddleware, roleMiddleware(['admin']), orderController.getOrdersForSuppliers);
 router.get('/get-orders-for-branch/:branchId', authMiddleware, roleMiddleware(['admin']), orderController.getOrdersForBranch);
 
 

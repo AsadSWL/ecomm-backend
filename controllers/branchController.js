@@ -1,10 +1,10 @@
 const User = require('../models/userModel');
 
 exports.createBranch = async (req, res) => {
-    const { firstname, lastname, email, password, role } = req.body;
+    const { firstname, lastname, email, password, role, status, paymentMethod } = req.body;
     try {
         console.log(req.body);
-        const user = new User({ firstname, lastname, email, password, role });
+        const user = new User({ firstname, lastname, email, password, role, status, paymentMethod });
         await user.save();
         res.status(201).json({ status: true, message: "Branch created successfully" });
     } catch (error) {
