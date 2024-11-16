@@ -1,6 +1,6 @@
 const Order = require('../models/orderModel');
-const Supplier = require('../models/supplierModel');
 const Product = require('../models/productModel');
+const mongoose = require('mongoose');
 
 exports.placeOrder = async (req, res) => {
     const { branchId, products, deliveryDate } = req.body;

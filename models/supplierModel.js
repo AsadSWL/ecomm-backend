@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const supplierSchema = new mongoose.Schema({
-  icon: { type: String   },
+  icon: { type: String },
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   address: {

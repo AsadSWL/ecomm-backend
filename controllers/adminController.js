@@ -25,13 +25,13 @@ exports.getDashboardStats = async (req, res) => {
                 }
             }
         ]);
-
+        
         const stats = {
             "suppliers": suppliers,
             "branches": branches,
             "orders": orders,
             "products": products,
-            "sales": sales[0].totalSum,
+            "sales": sales.length > 0 ? sales[0].totalSum : 0,
         }
 
         res.status(201).json({ status: true, stats: stats });
