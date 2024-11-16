@@ -23,6 +23,11 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'branch'],
     default: 'branch',
   },
+  address: {
+    street: { type: String },
+    city: { type: String },
+    postcode: { type: String },
+  },
   paymentMethod: {
     type: String,
   },
