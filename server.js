@@ -16,10 +16,12 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const corsOptions = {
   origin: '*',
   credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 app.use(express.json());
-app.use(cors(process.env.NODE_ENV === 'production' ? corsOptions : {}));
+app.use(cors(corsOptions));
 
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB'))
