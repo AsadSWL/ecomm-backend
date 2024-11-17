@@ -14,14 +14,8 @@ app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin || process.env.ALLOWED_ORIGINS.split(',').includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
+  origin: '*',
+  credentials: false,
 };
 
 app.use(express.json());
