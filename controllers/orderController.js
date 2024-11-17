@@ -42,63 +42,25 @@ exports.getOrder = async (req, res) => {
     try {
         const order = await Order.find({ _id: req.params.id })
             .populate('branch', 'firstname lastname email address paymentMethod')
-            .populate('products.product', 'supplier category image name sku price vat');
+            .populate({
+                path: 'products.product',
+                populate: {
+                    path: 'supplier',
+                    select: 'name email phone address' // Select supplier fields you want to include
+                }
+            })
+            .populate('products.product.category', 'name description'); // Optional: Populate category if needed
 
-        res.json({ status: true, order: order });
+        res.json({ status: true, order });
     } catch (error) {
-        res.status(500).json({ status: false, error: 'Failed to get orders' });
-    }
-};
-
-exports.getOrdersForSuppliers = async (req, res) => {
-    try {
-        const groupedOrders = await Order.aggregate([
-            {
-                $lookup: {
-                    from: 'products',
-                    localField: 'products.product',
-                    foreignField: '_id',
-                    as: 'productDetails',
-                },
-            },
-            {
-                $unwind: '$productDetails',
-            },
-            {
-                $group: {
-                    _id: '$productDetails.supplier',
-                    orders: {
-                        $push: {
-                            _id: '$_id',
-                            branch: '$branch',
-                            totalPrice: '$totalPrice',
-                            deliveryDate: '$deliveryDate',
-                            status: '$status',
-                            createdAt: '$createdAt',
-                        },
-                    },
-                    totalOrderValue: { $sum: '$totalPrice' },
-                },
-            },
-            {
-                $lookup: {
-                    from: 'suppliers',
-                    localField: '_id',
-                    foreignField: '_id',
-                    as: 'supplierDetails',
-                },
-            },
-        ]);
-
-        res.json({ status: true, orders: groupedOrders });
-    } catch (error) {
-        console.error('Error grouping orders by supplier:', error);
         res.status(500).json({ status: false, error: 'Failed to get orders' });
     }
 };
 
 exports.getOrdersBySupplier = async (req, res) => {
     try {
+        const supplierId = new mongoose.Types.ObjectId(req.params.supplierId);
+
         const orders = await Order.aggregate([
           {
             $lookup: {
@@ -109,13 +71,21 @@ exports.getOrdersBySupplier = async (req, res) => {
             },
           },
           {
+            $lookup: {
+                from: 'users',
+                localField: 'branch',
+                foreignField: '_id',
+                as: 'branchDetails',
+            },
+        },
+          {
             $match: {
-              'productDetails.supplier': mongoose.Types.ObjectId(req.params.supplierId),
+              'productDetails.supplier': supplierId,
             },
           },
           {
             $project: {
-              branch: 1,
+              branch: '$branchDetails',
               totalPrice: 1,
               deliveryDate: 1,
               status: 1,
@@ -124,7 +94,7 @@ exports.getOrdersBySupplier = async (req, res) => {
                 $filter: {
                   input: '$productDetails',
                   as: 'product',
-                  cond: { $eq: ['$$product.supplier', mongoose.Types.ObjectId(req.params.supplierId)] },
+                  cond: { $eq: ['$$product.supplier', supplierId] },
                 },
               },
             },
@@ -140,8 +110,18 @@ exports.getOrdersBySupplier = async (req, res) => {
 
 exports.getOrdersForBranch = async (req, res) => {
     try {
-        const orders = await Order.find({ branch: req.params.branchId }).populate('supplier products.product');
-        res.json({ status: true, orders: orders });
+        const order = await Order.find({ branch: req.params.branchId })
+            .populate('branch', 'firstname email address paymentMethod')
+            .populate({
+                path: 'products.product',
+                populate: {
+                    path: 'supplier',
+                    select: 'name email phone address'
+                }
+            })
+            .populate('products.product.category', 'name description');
+
+        res.json({ status: true, order });
     } catch (error) {
         res.status(500).json({ status: false, error: 'Failed to get orders' });
     }

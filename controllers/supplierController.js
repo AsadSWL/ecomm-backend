@@ -1,5 +1,6 @@
 const Supplier = require('../models/supplierModel');
 const Holiday = require('../models/holidayModel');
+const Order = require('../models/orderModel');
 const multer = require('multer');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -66,7 +67,6 @@ exports.updateSupplier = async (req, res) => {
         if (err) {
             return res.status(400).json({ status: false, error: err.message });
         }
-
         const { id, name, email, streetAddress, city, postcode, deliveryDays, holidays, status } = req.body;
         const imageUrl = req.file ? `/uploads/supplier_icons/${req.file.filename}` : null;
 
@@ -78,12 +78,19 @@ exports.updateSupplier = async (req, res) => {
 
             let holiday;
             if (holidays) {
-                const holidayList = holidays.split(',').map(h => h.trim());
+                let holidaysArray = JSON.parse(holidays);
+
+                let formattedHolidays = holidaysArray.map(dateStr => {
+                    let date = new Date(dateStr.split('/').reverse().join('-'));
+
+                    let options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+                    return date.toLocaleDateString('en-GB', options);
+                }).join(',');
+                const holidayList = formattedHolidays.split(',').map(h => h.trim());
                 const holidayDates = holidayList
                     .filter(item => !isNaN(Date.parse(item)))
                     .map(item => new Date(item));
 
-                // Create or update the holiday document
                 if (supplier.holidays) {
                     holiday = await Holiday.findById(supplier.holidays);
                     holiday.holidays = holidayDates;
@@ -94,7 +101,6 @@ exports.updateSupplier = async (req, res) => {
                 }
             }
 
-            // Update supplier fields
             supplier.name = name || supplier.name;
             supplier.email = email || supplier.email;
             supplier.address = {
@@ -102,7 +108,7 @@ exports.updateSupplier = async (req, res) => {
                 city: city || supplier.address.city,
                 postcode: postcode || supplier.address.postcode
             };
-            supplier.deliveryDays = deliveryDays ? deliveryDays.split(',') : supplier.deliveryDays;
+            supplier.deliveryDays = deliveryDays ? JSON.parse(deliveryDays) : supplier.deliveryDays;
             supplier.status = status || supplier.status;
             supplier.icon = imageUrl || supplier.icon;
 
@@ -173,5 +179,28 @@ exports.setHoliday = async (req, res) => {
     } catch (error) {
         console.error('Error updating supplier holidays:', error);
         res.status(500).json({ status: false, error: 'Failed to create holiday' });
+    }
+};
+
+exports.deleteSupplier = async (req, res) => {
+    try {
+        const supplier = await Supplier.findById(req.params.id);
+
+        if (!supplier) {
+            return res.status(404).json({ status: false, error: 'Supplier not found' });
+        }
+
+        const orders = await Order.find({ 'products.product.supplier': req.params.id });
+
+        if (orders.length > 0) {
+            return res.status(400).json({ status: false, error: 'Cannot delete supplier because there are active orders linked to it' });
+        }
+
+        await Supplier.findByIdAndDelete(req.params.id);
+
+        res.json({ status: true, message: 'Supplier deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting supplier:', error);
+        res.status(500).json({ status: false, error: 'Failed to delete supplier' });
     }
 };

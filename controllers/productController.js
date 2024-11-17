@@ -22,8 +22,29 @@ const productStorage = multer.diskStorage({
     }
 });
 
+const productUpdateStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/product_images/');
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + path.extname(file.originalname));
+    }
+});
+
 const uploadProductImage = multer({
     storage: productStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // Max file size for product image is 5MB
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed'), false);
+        }
+    }
+}).single('image');
+
+const uploadUpdatedProductImage = multer({
+    storage: productUpdateStorage,
     limits: { fileSize: 5 * 1024 * 1024 }, // Max file size for product image is 5MB
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('image/')) {
@@ -115,6 +136,23 @@ exports.getCategory = async (req, res) => {
     }
 };
 
+exports.deleteCategory = async (req, res) => {
+    try {
+        const category = await Category.findById(req.params.id);
+
+        if (!category) {
+            return res.status(404).json({ status: false, error: 'Category not found' });
+        }
+
+        await Category.findByIdAndDelete(req.params.id);
+
+        res.json({ status: true, message: 'Category deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting category:', error);
+        res.status(500).json({ status: false, error: 'Failed to delete category' });
+    }
+};
+
 
 exports.addProduct = async (req, res) => {
     uploadProductImage(req, res, async (err) => {
@@ -149,15 +187,15 @@ exports.addProduct = async (req, res) => {
 };
 
 exports.updateProduct = async (req, res) => {
-    uploadProductImage(req, res, async (err) => {
+    uploadUpdatedProductImage(req, res, async (err) => {
         if (err) {
             return res.status(400).json({ status: false, error: err.message });
         }
-
         const { id, supplier, category, name, sku, price, vat, status, description } = req.body;
         const productImageUrl = req.file ? `/uploads/product_images/${req.file.filename}` : null;
 
         try {
+            console.log(req.body);
             const product = await Product.findById(id);
             if (!product) {
                 return res.status(404).json({ status: false, error: 'Product not found' });
@@ -205,5 +243,22 @@ exports.getProductsBySupplier = async (req, res) => {
         res.json({ status: true, products: products});
     } catch (error) {
         res.status(500).json({ status: false, error: 'Failed to get products' });
+    }
+};
+
+exports.deleteProduct = async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
+
+        if (!product) {
+            return res.status(404).json({ status: false, error: 'Product not found' });
+        }
+
+        await Product.findByIdAndDelete(req.params.id);
+
+        res.json({ status: true, message: 'Product deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting product:', error);
+        res.status(500).json({ status: false, error: 'Failed to delete product' });
     }
 };

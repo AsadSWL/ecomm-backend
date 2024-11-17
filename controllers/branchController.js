@@ -49,3 +49,20 @@ exports.updateBranch = async (req, res) => {
         res.status(500).json({ status: false, error: 'Failed to create shop' });
     }
 };
+
+exports.deleteBranch = async (req, res) => {
+    try {
+        const shop = await User.findById(req.params.id);
+
+        if (!shop) {
+            return res.status(404).json({ status: false, error: 'Shop not found' });
+        }
+
+        await User.findByIdAndDelete(req.params.id);
+
+        res.json({ status: true, message: 'Shop deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting shop:', error);
+        res.status(500).json({ status: false, error: 'Failed to delete shop' });
+    }
+};

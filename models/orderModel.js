@@ -10,7 +10,7 @@ const orderSchema = new mongoose.Schema({
   ],
   totalPrice: { type: Number},
   deliveryDate: { type: Date },
-  status: { type: String, default: 'pending' },
+  status: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
 
