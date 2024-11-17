@@ -14,14 +14,15 @@ app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const corsOptions = {
-  origin: '*',
-  credentials: false,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: ['https://ecomm-admin-kohl.vercel.app'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 };
 
 app.use(express.json());
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB'))
