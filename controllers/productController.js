@@ -163,6 +163,10 @@ exports.addProduct = async (req, res) => {
         const { supplier, category, name, sku, price, vat, status, description } = req.body;
         const productImageUrl = req.file ? `/uploads/product_images/${req.file.filename}` : null;
 
+        const isVat = vat == 'false' ? 0 : (vat ? 20 : 0);
+
+        console.log(vat);
+
         const payload = {
             supplier: supplier,
             category: category,
@@ -170,10 +174,12 @@ exports.addProduct = async (req, res) => {
             name,
             sku,
             price,
-            vat,
+            vat: isVat,
             status,
             description
         };
+
+        console.log(payload);
 
         try {
             const product = new Product(payload);
@@ -201,13 +207,15 @@ exports.updateProduct = async (req, res) => {
                 return res.status(404).json({ status: false, error: 'Product not found' });
             }
 
+            const isVat = vat == 'true' ? 20 : 0;
+
             product.supplier = supplier;
             product.category = category;
             product.image = productImageUrl || product.image;
             product.name = name;
             product.sku = sku;
             product.price = price;
-            product.vat = vat;
+            product.vat = isVat;
             product.status = status;
             product.description = description;
 

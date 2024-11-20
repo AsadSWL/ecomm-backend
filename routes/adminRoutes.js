@@ -47,6 +47,7 @@ router.post('/place-order', authMiddleware, roleMiddleware(['branch', 'admin']),
 router.get('/get-all-orders', authMiddleware, roleMiddleware(['admin']), orderController.getAllOrders);
 router.get('/get-order/:id', authMiddleware, roleMiddleware(['admin']), orderController.getOrder);
 router.get('/get-orders-for-supplier/:supplierId', authMiddleware, roleMiddleware(['admin']), orderController.getOrdersBySupplier);
+router.get('/get-supplier-order/:supplierId/:orderId', authMiddleware, roleMiddleware(['admin']), orderController.getSupplierOrder);
 router.get('/get-orders-for-branch/:branchId', authMiddleware, roleMiddleware(['admin']), orderController.getOrdersForBranch);
 
 
