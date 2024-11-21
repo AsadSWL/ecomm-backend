@@ -4,10 +4,12 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: process.env.SMTP_HOST,
+  port: 587,
+  secure: false,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
   }
 });
 
@@ -111,7 +113,7 @@ exports.forgotPassword = async (req, res) => {
     user.resetPasswordExpires = Date.now() + 3600000;
     await user.save();
 
-    const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/reset-password/${resetToken}`;
+    const resetUrl = `${req.headers.origin}/update-password/${resetToken}`;
     const message = `
             You are receiving this because you (or someone else) requested a password reset.
             Please click on the following link to reset your password:
@@ -119,6 +121,7 @@ exports.forgotPassword = async (req, res) => {
         `;
 
     await transporter.sendMail({
+      from: process.env.SMTP_EMAIL,
       to: user.email,
       subject: 'Password Reset',
       text: message
