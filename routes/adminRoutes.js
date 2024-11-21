@@ -36,6 +36,12 @@ router.get('/get-categories', authMiddleware, roleMiddleware(['branch', 'admin']
 router.get('/get-category/:id', authMiddleware, roleMiddleware(['branch', 'admin']), productController.getCategory);
 router.delete('/delete-category/:id', authMiddleware, roleMiddleware(['admin']), productController.deleteCategory);
 
+router.get('/get-delivery-days', authMiddleware, roleMiddleware(['admin']), supplierController.getDeliveryDays);
+router.get('/get-delivery-day/:id', authMiddleware, roleMiddleware(['admin']), supplierController.getDeliveryDay);
+router.post('/add-delivery-days', authMiddleware, roleMiddleware(['admin']), supplierController.addDeliveryDays);
+router.post('/edit-delivery-days/:id', authMiddleware, roleMiddleware(['admin']), supplierController.editDeliveryDays);
+router.delete('/delete-delivery-days/:id', authMiddleware, roleMiddleware(['admin']), supplierController.deleteDeliveryDays);
+
 router.post('/add-product', authMiddleware, roleMiddleware(['admin']), productController.addProduct);
 router.get('/get-product/:id', authMiddleware, roleMiddleware(['admin']), productController.getProduct);
 router.post('/update-product', authMiddleware, roleMiddleware(['admin']), productController.updateProduct);

@@ -1,6 +1,7 @@
 const Supplier = require('../models/supplierModel');
 const Holiday = require('../models/holidayModel');
 const Order = require('../models/orderModel');
+const Delivery = require('../models/deliveryModel');
 const multer = require('multer');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -31,7 +32,7 @@ exports.createSupplier = async (req, res) => {
         if (err) {
             return res.status(400).json({ status: false, error: err.message });
         }
-        const { name, email, streetAddress, city, postcode, deliveryDays, holidays, status } = req.body;
+        const { name, email, phone, streetAddress, city, postcode, holidays, status } = req.body;
         const imageUrl = req.file ? `/uploads/supplier_icons/${req.file.filename}` : null;
 
         try {
@@ -49,9 +50,7 @@ exports.createSupplier = async (req, res) => {
                 postcode: postcode
             }
 
-            const deliveryDaysList = deliveryDays.split(',');
-
-            const supplier = new Supplier({ icon: imageUrl, name: name, email: email, address: address, deliveryDays: deliveryDaysList, holidays: holiday._id, status: status });
+            const supplier = new Supplier({ icon: imageUrl, name: name, email: email, phone: phone, address: address, holidays: holiday._id, status: status });
             await supplier.save();
 
             res.status(201).json({ status: true, supplier });
@@ -67,7 +66,7 @@ exports.updateSupplier = async (req, res) => {
         if (err) {
             return res.status(400).json({ status: false, error: err.message });
         }
-        const { id, name, email, streetAddress, city, postcode, deliveryDays, holidays, status } = req.body;
+        const { id, name, email, phone, streetAddress, city, postcode, deliveryDays, holidays, status } = req.body;
         const imageUrl = req.file ? `/uploads/supplier_icons/${req.file.filename}` : null;
 
         try {
@@ -103,6 +102,7 @@ exports.updateSupplier = async (req, res) => {
 
             supplier.name = name || supplier.name;
             supplier.email = email || supplier.email;
+            supplier.phone = phone || supplier.phone;
             supplier.address = {
                 street: streetAddress || supplier.address.street,
                 city: city || supplier.address.city,
@@ -121,7 +121,6 @@ exports.updateSupplier = async (req, res) => {
         }
     });
 };
-
 
 exports.getSuppliers = async (req, res) => {
     try {
@@ -202,5 +201,65 @@ exports.deleteSupplier = async (req, res) => {
     } catch (error) {
         console.error('Error deleting supplier:', error);
         res.status(500).json({ status: false, error: 'Failed to delete supplier' });
+    }
+};
+
+
+exports.getDeliveryDays = async (req, res) => {
+    try {
+        const deliveryDays = await Delivery.find().populate('branch supplier');
+        res.json({ status: true, deliveryDays });
+    } catch (error) {
+        res.status(500).json({ status: false, error: 'Failed to get suppliers' });
+    }
+};
+
+exports.getDeliveryDay = async (req, res) => {
+    try {
+        const deliveryDays = await Delivery.find({ _id: req.params.id }).populate('branch supplier');
+        res.json({ status: true, deliveryDays });
+    } catch (error) {
+        res.status(500).json({ status: false, error: 'Failed to get suppliers' });
+    }
+};
+
+exports.addDeliveryDays = async (req, res) => {
+    const { branch, supplier, days } = req.body;
+    try {
+        const delivery = new Delivery({ branch, supplier, days });
+        await delivery.save();
+
+        res.status(201).json({ status: true, delivery });
+    } catch (error) {
+        res.status(500).json({ status: false, error: 'Failed to add delivery' });
+    }
+};
+
+exports.editDeliveryDays = async (req, res) => {
+    const { branch, supplier, days } = req.body;
+    const id = req.params.id;
+    try {
+        const delivery = await Delivery.findByIdAndUpdate(id, { branch, supplier, days });
+        res.status(201).json({ status: true, message: "Delivery days updated successfully" });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ status: false, error: 'Failed to update delivery days' });
+    }
+};
+
+exports.deleteDeliveryDays = async (req, res) => {
+    try {
+        const delivery = await Delivery.findById(req.params.id);
+
+        if (!delivery) {
+            return res.status(404).json({ status: false, error: 'Delivery Days not found' });
+        }
+
+        await Delivery.findByIdAndDelete(req.params.id);
+
+        res.json({ status: true, message: 'Delivery Days deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting delivery days:', error);
+        res.status(500).json({ status: false, error: 'Failed to delete delivery days' });
     }
 };
