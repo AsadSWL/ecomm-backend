@@ -14,6 +14,8 @@ const router = express.Router();
 // router.get('/branch', authMiddleware, roleMiddleware(['branch', 'admin']), adminController.branchAccess);
 
 router.get('/dashboard-stats', authMiddleware, roleMiddleware(['admin']), adminController.getDashboardStats);
+router.get('/report-stats', authMiddleware, roleMiddleware(['admin']), adminController.getDashboardStats);
+router.get('/reports/:filter', authMiddleware, roleMiddleware(['admin']), adminController.getReports);
 router.put('/update-profile', authMiddleware, roleMiddleware(['admin']), adminController.updateProfile);
 router.put('/update-password', authMiddleware, roleMiddleware(['admin']), adminController.updatePassword);
 
@@ -46,8 +48,10 @@ router.post('/add-product', authMiddleware, roleMiddleware(['admin']), productCo
 router.get('/get-product/:id', authMiddleware, roleMiddleware(['admin']), productController.getProduct);
 router.post('/update-product', authMiddleware, roleMiddleware(['admin']), productController.updateProduct);
 router.get('/get-all-products', authMiddleware, roleMiddleware(['admin']), productController.getAllProduct);
-router.get('/get-products-by-suppliers/:supplierId', authMiddleware, roleMiddleware(['branch', 'admin']), productController.getProductsBySupplier);
+router.get('/get-products-by-suppliers/:supplierId', authMiddleware, roleMiddleware(['admin']), productController.getProductsBySupplier);
 router.delete('/delete-product/:id', authMiddleware, roleMiddleware(['admin']), productController.deleteProduct);
+
+router.get('/get-suppliers-with-details', authMiddleware, roleMiddleware(['branch']), productController.getSuppliersWithDetails );
 
 router.post('/place-order', authMiddleware, roleMiddleware(['branch', 'admin']), orderController.placeOrder);
 router.get('/get-all-orders', authMiddleware, roleMiddleware(['admin']), orderController.getAllOrders);

@@ -1,5 +1,6 @@
 const Product = require('../models/productModel');
 const Category = require('../models/categoryModel');
+const Supplier = require('../models/supplierModel');
 const multer = require('multer');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -91,7 +92,7 @@ exports.updateCategory = async (req, res) => {
         if (err) {
             return res.status(400).json({ status: false, error: err.message });
         }
-        
+
         const { id, name } = req.body;
         const imageUrl = req.file ? `/uploads/category_icons/${req.file.filename}` : null;
 
@@ -121,7 +122,7 @@ exports.updateCategory = async (req, res) => {
 exports.getCategories = async (req, res) => {
     try {
         const categories = await Category.find();
-        res.json({ status: true, categories: categories});
+        res.json({ status: true, categories: categories });
     } catch (error) {
         res.status(500).json({ status: false, error: 'Failed to get categories' });
     }
@@ -130,7 +131,7 @@ exports.getCategories = async (req, res) => {
 exports.getCategory = async (req, res) => {
     try {
         const categories = await Category.find({ _id: req.params.id });
-        res.json({ status: true, categories: categories});
+        res.json({ status: true, categories: categories });
     } catch (error) {
         res.status(500).json({ status: false, error: 'Failed to get categories' });
     }
@@ -230,7 +231,7 @@ exports.updateProduct = async (req, res) => {
 exports.getAllProduct = async (req, res) => {
     try {
         const products = await Product.find().populate('supplier', 'name').populate('category', 'name');
-        res.json({ status: true, products: products});
+        res.json({ status: true, products: products });
     } catch (error) {
         res.status(500).json({ status: false, error: 'Failed to get products' });
     }
@@ -239,7 +240,7 @@ exports.getAllProduct = async (req, res) => {
 exports.getProduct = async (req, res) => {
     try {
         const product = await Product.find({ _id: req.params.id }).populate('supplier', 'name').populate('category', 'name');
-        res.json({ status: true, product});
+        res.json({ status: true, product });
     } catch (error) {
         res.status(500).json({ status: false, error: 'Failed to get products' });
     }
@@ -248,7 +249,7 @@ exports.getProduct = async (req, res) => {
 exports.getProductsBySupplier = async (req, res) => {
     try {
         const products = await Product.find({ supplier: req.params.supplierId }).populate('supplier', 'name').populate('category', 'name');
-        res.json({ status: true, products: products});
+        res.json({ status: true, products: products });
     } catch (error) {
         res.status(500).json({ status: false, error: 'Failed to get products' });
     }
@@ -268,5 +269,82 @@ exports.deleteProduct = async (req, res) => {
     } catch (error) {
         console.error('Error deleting product:', error);
         res.status(500).json({ status: false, error: 'Failed to delete product' });
+    }
+};
+
+exports.getSuppliersWithDetails = async (req, res) => {
+    try {
+        const branchId = req.user.id;
+        const suppliers = await Supplier.aggregate([
+            {
+              $lookup: {
+                from: 'products', // Collection name for products
+                localField: '_id',
+                foreignField: 'supplier',
+                as: 'products',
+              },
+            },
+            {
+              $lookup: {
+                from: 'categories', // Collection name for categories
+                localField: 'products.category',
+                foreignField: '_id',
+                as: 'categories',
+              },
+            },
+            {
+              $lookup: {
+                from: 'holidays', // Collection name for holidays
+                localField: 'holidays',
+                foreignField: '_id',
+                as: 'holidays',
+              },
+            },
+            {
+              $lookup: {
+                from: 'deliveries', // Collection name for deliveries
+                let: { supplierId: '$_id' },
+                pipeline: [
+                  { $match: { $expr: { $and: [{ $eq: ['$supplier', '$$supplierId'] }, { $eq: ['$branch', branchId] }] } } },
+                  { $project: { days: 1, _id: 0 } },
+                ],
+                as: 'deliveryDays',
+              },
+            },
+            {
+              $addFields: {
+                categorizedProducts: {
+                  $map: {
+                    input: '$categories',
+                    as: 'category',
+                    in: {
+                      _id: '$$category._id',
+                      name: '$$category.name',
+                      image: '$$category.image',
+                      createdAt: '$$category.createdAt',
+                      products: {
+                        $filter: {
+                          input: '$products',
+                          as: 'product',
+                          cond: { $eq: ['$$product.category', '$$category._id'] },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            {
+              $project: {
+                products: 0, // Remove the raw products array
+                categories: 0, // Remove the raw categories array
+              },
+            },
+          ]);
+
+        res.json({ status: true, suppliers });
+    } catch (error) {
+        console.error('Error deleting product:', error);
+        res.status(500).json({ status: false, error: 'Failed to get product' });
     }
 };
