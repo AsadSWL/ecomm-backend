@@ -52,6 +52,7 @@ router.get('/get-products-by-suppliers/:supplierId', authMiddleware, roleMiddlew
 router.delete('/delete-product/:id', authMiddleware, roleMiddleware(['admin']), productController.deleteProduct);
 
 router.get('/get-suppliers-with-details', authMiddleware, roleMiddleware(['branch']), productController.getSuppliersWithDetails );
+router.get('/get-delivery-days-with-shop/:supplierId', authMiddleware, roleMiddleware(['branch']), supplierController.getDeliveryDaysWithShop );
 
 router.post('/place-order', authMiddleware, roleMiddleware(['branch', 'admin']), orderController.placeOrder);
 router.get('/get-all-orders', authMiddleware, roleMiddleware(['admin']), orderController.getAllOrders);

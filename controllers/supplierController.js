@@ -223,6 +223,16 @@ exports.getDeliveryDay = async (req, res) => {
     }
 };
 
+exports.getDeliveryDaysWithShop = async (req, res) => {
+    try {
+        const deliveryDays = await Delivery.findOne({ supplier: req.params.supplierId, branch: req.user._id }).populate('branch supplier');
+        res.json({ status: true, deliveryDays });
+    } catch (error) {
+        res.status(500).json({ status: false, error: 'Failed to get suppliers' });
+    }
+};
+
+
 exports.addDeliveryDays = async (req, res) => {
     const { branch, supplier, days } = req.body;
     try {
