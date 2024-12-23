@@ -5,11 +5,11 @@ const orderSchema = new mongoose.Schema({
   products: [
     {
       product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
-      quantity: { type: Number, required: true }
+      quantity: { type: Number, required: true },
+      deliveryDate: { type: Date },
     }
   ],
   totalPrice: { type: Number},
-  deliveryDate: { type: Date },
   status: { type: String },
   createdAt: { type: Date, default: Date.now }
 });

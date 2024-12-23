@@ -1,28 +1,139 @@
 const Order = require('../models/orderModel');
 const Product = require('../models/productModel');
+const Address = require('../models/addressModel');
+const Card = require('../models/cardModel');
 const mongoose = require('mongoose');
+const axios = require('axios');
+const nodemailer = require('nodemailer');
+const { createInvoicePDF } = require('./pdfGenerator');
 
-exports.placeOrder = async (req, res) => {
-    const { branchId, products, deliveryDate } = req.body;
+async function sendEmail({ to, subject, text, attachments }) {
+    const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: 587,
+        secure: false,
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    });
+
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to,
+        subject,
+        text,
+        attachments,
+    };
 
     try {
+        await transporter.sendMail(mailOptions);
+        console.log(`Email sent to ${to}`);
+    } catch (error) {
+        console.error(`Failed to send email to ${to}:`, error);
+    }
+}
 
-        let totalPrice = 0;
-        for (const item of products) {
-            const product = await Product.findById(item.product);
-            if (product) {
-                totalPrice += product.price * item.quantity;
-            } else {
-                return res.status(404).json({ error: `Product with ID ${item.product} not found` });
+async function processCardPayment(amount, cardDetails) {
+    const paymentRequest = {
+        amount: amount * 100,
+        currency: 'GBP',
+        cardDetails,
+        orderReference: `ORDER-${Date.now()}`,
+    };
+
+    const paymentConfig = {
+        headers: {
+            Authorization: `Bearer ${process.env.PAYMENTSENSE_JWT}`,
+            'Gateway-Username': process.env.PAYMENTSENSE_GATEWAY_USERNAME,
+            'Content-Type': 'application/json',
+        },
+    };
+
+    try {
+        const response = await axios.post(
+            'https://api.paymentsense.com/api/v2/transactions',
+            paymentRequest,
+            paymentConfig
+        );
+
+        return response.data && response.data.status === 'success';
+    } catch (error) {
+        console.error('Payment API Error:', error.response?.data || error.message);
+        return false;
+    }
+}
+
+exports.placeOrder = async (req, res) => {
+    const {
+        deliveryAddress,
+        deliveryInstructions,
+        paymentMethod,
+        paymentDetails,
+        suppliers,
+    } = req.body;
+
+    try {
+        const shopDetails = req.user;
+        let totalOrderPrice = 0;
+        const allProducts = [];
+
+        for (const supplier of suppliers) {
+            for (const product of supplier.products) {
+                const dbProduct = await Product.findById(product.productId);
+                if (!dbProduct) {
+                    return res.status(404).json({ error: `Product with ID ${product.productId} not found` });
+                }
+                totalOrderPrice += dbProduct.price * product.quantity;
+                allProducts.push({
+                    product: product.productId,
+                    quantity: product.quantity,
+                    deliveryDate: supplier.deliveryDate
+                });
             }
         }
 
-        const order = new Order({ branch: branchId, products, totalPrice, deliveryDate });
+        if (paymentMethod === 'Card Payment') {
+            const paymentSuccess = await processCardPayment(totalOrderPrice, paymentDetails);
+            if (!paymentSuccess) {
+                return res.status(400).json({ status: false, error: 'Payment failed' });
+            }
+        }
+
+        const order = new Order({
+            branch: shopDetails._id,
+            products: allProducts,
+            totalPrice: totalOrderPrice,
+            status: 'Pending',
+            createdAt: new Date()
+        });
         await order.save();
 
-        res.status(201).json({ status: true, order: order });
+        // Generate PDF invoice
+        const adminPDF = await createInvoicePDF([order], deliveryAddress, deliveryInstructions, paymentMethod);
+
+        // Send emails
+        await sendEmail({
+            to: shopDetails.email,
+            subject: 'Complete Order Details',
+            text: `Dear ${shopDetails.firstname}, please find the complete order details attached.`,
+            attachments: [{ filename: 'ShopOrder.pdf', content: adminPDF }],
+        });
+
+        await sendEmail({
+            to: 'masad3290@gmail.com',
+            subject: 'New Order Placed',
+            text: 'A new order has been placed. Please find the complete details attached.',
+            attachments: [{ filename: 'AdminOrder.pdf', content: adminPDF }],
+        });
+
+        // Clear cart data from cookies
+        res.cookie('cart', '', { expires: new Date(0), httpOnly: true });
+
+        res.status(201).json({ status: true, message: 'Order placed successfully' });
     } catch (error) {
-        res.status(500).json({ status: false, error: 'Failed to create order' });
+        console.error('Error placing order:', error);
+        res.status(500).json({ status: false, error: 'Failed to place order' });
     }
 };
 
@@ -267,5 +378,53 @@ exports.getOrdersForBranch = async (req, res) => {
         res.json({ status: true, order });
     } catch (error) {
         res.status(500).json({ status: false, error: 'Failed to get orders' });
+    }
+};
+
+exports.deliveryAddresses = async (req, res) => {
+    try {
+        const addresses = await Address.find({ branch: req.user.id });
+        res.status(201).json({ status: true, addresses });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ status: false, error: 'Failed to fetch address' });
+    }
+};
+
+exports.addDeliveryAddress = async (req, res) => {
+    const { addressLine1, addressLine2, county, postcode, townCity } = req.body;
+    const { id } = req.user;
+    const payload = { addressLine1, addressLine2, county, postcode, townCity, branch: id };
+    try {
+        const address = new Address(payload);
+        await address.save();
+        res.status(201).json({ status: true, message: "Address added successfully", address });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ status: false, error: 'Failed to add address' });
+    }
+};
+
+exports.cardDetails = async (req, res) => {
+    try {
+        const cards = await Card.find({ branch: req.user.id }).select('-cvv');
+        res.status(201).json({ status: true, cards });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ status: false, error: 'Failed to fetch card' });
+    }
+};
+
+exports.addCard = async (req, res) => {
+    const { cardNumber, expiryDate, cvv, cardHolderName } = req.body;
+    const { id } = req.user;
+    const payload = { cardNumber, expiryDate, cvv, cardHolderName, branch: id };
+    try {
+        const card = new Card(payload);
+        await card.save();
+        res.status(201).json({ status: true, message: "Card added successfully", card });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ status: false, error: 'Failed to add card' });
     }
 };

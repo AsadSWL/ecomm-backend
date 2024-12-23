@@ -54,12 +54,16 @@ router.delete('/delete-product/:id', authMiddleware, roleMiddleware(['admin']), 
 router.get('/get-suppliers-with-details', authMiddleware, roleMiddleware(['branch']), productController.getSuppliersWithDetails );
 router.get('/get-delivery-days-with-shop/:supplierId', authMiddleware, roleMiddleware(['branch']), supplierController.getDeliveryDaysWithShop );
 
-router.post('/place-order', authMiddleware, roleMiddleware(['branch', 'admin']), orderController.placeOrder);
+router.post('/place_order', authMiddleware, roleMiddleware(['branch', 'admin']), orderController.placeOrder);
 router.get('/get-all-orders', authMiddleware, roleMiddleware(['admin']), orderController.getAllOrders);
-router.get('/get-order/:id', authMiddleware, roleMiddleware(['admin']), orderController.getOrder);
+router.get('/get-order/:id', authMiddleware, roleMiddleware(['admin', 'branch']), orderController.getOrder);
 router.get('/get-orders-for-supplier/:supplierId', authMiddleware, roleMiddleware(['admin']), orderController.getOrdersBySupplier);
 router.get('/get-supplier-order/:supplierId/:orderId', authMiddleware, roleMiddleware(['admin']), orderController.getSupplierOrder);
 router.get('/get-orders-for-branch/:branchId', authMiddleware, roleMiddleware(['admin']), orderController.getOrdersForBranch);
 
+router.post('/add-delivery-address', authMiddleware, roleMiddleware(['branch']), orderController.addDeliveryAddress);
+router.get('/delivery-addresses', authMiddleware, roleMiddleware(['branch']), orderController.deliveryAddresses);
+router.post('/add-card', authMiddleware, roleMiddleware(['branch']), orderController.addCard);
+router.get('/cards', authMiddleware, roleMiddleware(['branch']), orderController.cardDetails);
 
 module.exports = router;
